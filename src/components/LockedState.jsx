@@ -9,7 +9,146 @@ const LockedState = ({ onMobileUnlock }) => {
   const [currentMessage, setCurrentMessage] = useState("");
   const [showFinalDialog, setShowFinalDialog] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
+
+  // Игровая логика
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isJumping, setIsJumping] = useState(false);
+  const [obstacles, setObstacles] = useState([]);
+  const [gameTime, setGameTime] = useState(60);
+  const [gameStatus, setGameStatus] = useState(""); // "", "lost", "won"
+
+  const gameLoopRef = useRef();
+  const timerRef = useRef();
+  const lastTimeRef = useRef(0);
+  const obstacleTimerRef = useRef(0);
+  const isJumpingRef = useRef(false);
   const resetTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (!isPlaying && !gameStatus) {
+          startGame();
+        } else if (isPlaying && !isJumpingRef.current) {
+          jump();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      cancelAnimationFrame(gameLoopRef.current);
+      clearInterval(timerRef.current);
+    };
+  }, [isPlaying, isJumping, gameStatus]);
+
+  const startGame = () => {
+    setIsPlaying(true);
+    setGameStatus("");
+    setGameTime(60);
+    setObstacles([]);
+    setCurrentMessage("");
+    lastTimeRef.current = performance.now();
+    obstacleTimerRef.current = 1000; // Ждем 1 сек перед первым препятствием
+    isJumpingRef.current = false;
+
+    // Таймер
+    timerRef.current = setInterval(() => {
+      setGameTime((prev) => {
+        if (prev <= 1) {
+          winGame();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Игровой цикл
+    gameLoopRef.current = requestAnimationFrame(updateGame);
+  };
+
+  const jump = () => {
+    if (isJumpingRef.current) return;
+    setIsJumping(true);
+    isJumpingRef.current = true;
+    setTimeout(() => {
+      setIsJumping(false);
+      isJumpingRef.current = false;
+    }, 700);
+  };
+
+  const updateGame = (time) => {
+    if (!lastTimeRef.current) lastTimeRef.current = time;
+    const deltaTime = time - lastTimeRef.current;
+    lastTimeRef.current = time;
+
+    setObstacles((prev) => {
+      // Скорость движения (% от ширины контейнера в мс)
+      const speed = 0.05;
+      const moved = prev
+        .map((o) => ({ ...o, x: o.x - speed * deltaTime }))
+        .filter((o) => o.x > -10);
+
+      // Спавн новых препятствий
+      obstacleTimerRef.current -= deltaTime;
+      if (obstacleTimerRef.current <= 0) {
+        moved.push({ id: time, x: 110 }); // За пределами (100% + запас)
+        obstacleTimerRef.current = 1500 + Math.random() * 2000;
+      }
+
+      // Коллизии
+      // Кот находится на x=4% (20px / 500px) и имеет ширину ~13% (64px / 500px)
+      // Кот занимает диапазон [4%, 17%]
+      const collision = moved.some((o) => {
+        const hitX = o.x > 4 && o.x < 15;
+        const hitY = !isJumpingRef.current;
+        return hitX && hitY;
+      });
+
+      if (collision) {
+        loseGame();
+        return [];
+      }
+
+      return moved;
+    });
+
+    if (gameLoopRef.current) {
+      gameLoopRef.current = requestAnimationFrame(updateGame);
+    }
+  };
+
+  const loseGame = () => {
+    setIsPlaying(false);
+    setGameStatus("lost");
+    setCurrentMessage("GAME OVER");
+    clearInterval(timerRef.current);
+    cancelAnimationFrame(gameLoopRef.current);
+    gameLoopRef.current = null;
+
+    setTimeout(() => {
+      setGameStatus("");
+      setCurrentMessage("");
+      setObstacles([]);
+    }, 2000);
+  };
+
+  const winGame = () => {
+    setIsPlaying(false);
+    setGameStatus("won");
+    setCurrentMessage("Все, я устал.");
+    clearInterval(timerRef.current);
+    cancelAnimationFrame(gameLoopRef.current);
+    gameLoopRef.current = null;
+
+    setTimeout(() => {
+      setGameStatus("");
+      setCurrentMessage("");
+      setObstacles([]);
+    }, 5000);
+  };
 
 
 
@@ -75,13 +214,22 @@ const LockedState = ({ onMobileUnlock }) => {
       )}
       <div className="chrome-error-content">
         <div className={`error-icon ${isShaking ? "shake" : ""}`}>
-          <img
-            src="data:image/png;base64,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"
-            alt="Error Icon"
-            onClick={handleTap}
-            draggable="false"
-            style={{ cursor: "pointer", userSelect: "none", WebkitUserDrag: "none" }}
-          />
+          <div className={`game-container ${isPlaying ? "playing" : ""}`}>
+            {isPlaying && <div className="game-timer">{gameTime}s</div>}
+
+            <img
+              src={isPlaying ? "/src/assets/cat_walk.png" : "/src/assets/cat_front.png"}
+              alt="Error Icon"
+              className={`cat-image ${isJumping ? "jumping" : ""} ${isPlaying ? "running" : ""}`}
+              onClick={handleTap}
+              draggable="false"
+              style={{ cursor: "pointer", userSelect: "none", WebkitUserDrag: "none" }}
+            />
+
+            {isPlaying && obstacles.map(o => (
+              <div key={o.id} className="obstacle" style={{ left: `${o.x}%` }}>🌵</div>
+            ))}
+          </div>
         </div>
         <h1 className="main-title">Не удается получить доступ к сайту</h1>
         <p className="subtitle">Сайт <b>localhost</b> не позволяет установить соединение.</p>
@@ -304,6 +452,68 @@ const LockedState = ({ onMobileUnlock }) => {
             padding: 40px 24px;
             justify-content: flex-start;
           }
+        }
+
+        /* Game Styles */
+        .game-container {
+          position: relative;
+          width: 300px;
+          height: 150px;
+          border-bottom: 2px solid #5f6368;
+          overflow: hidden;
+          margin-bottom: 20px;
+          display: flex;
+          align-items: flex-end;
+          transition: width 0.3s;
+        }
+
+        .game-container.playing {
+          width: 500px;
+          background: rgba(255, 255, 255, 0.02);
+        }
+
+        .cat-image {
+          width: 64px;
+          height: 64px;
+          position: absolute;
+          left: 20px;
+          bottom: 0;
+          transition: bottom 0.2s cubic-bezier(0.1, 0.7, 0.1, 1);
+          z-index: 10;
+        }
+
+        .cat-image.jumping {
+          bottom: 80px;
+        }
+
+        .cat-image.running {
+          animation: run-wiggle 0.2s infinite alternate;
+        }
+
+        @keyframes run-wiggle {
+          from { transform: rotate(-3deg); }
+          to { transform: rotate(3deg); }
+        }
+
+        .obstacle {
+          position: absolute;
+          bottom: 5px;
+          font-size: 24px;
+          line-height: 1;
+          width: 30px;
+          height: 30px;
+          z-index: 5;
+        }
+
+        .game-timer {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          font-family: 'Courier New', monospace;
+          font-size: 18px;
+          color: #8ab4f8;
+          font-weight: bold;
+          text-shadow: 0 0 5px rgba(138, 180, 248, 0.5);
         }
       `}</style>
     </div>
