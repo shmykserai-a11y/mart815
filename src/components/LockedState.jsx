@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from "react-router-dom";
 
+import catWalkImg from '../assets/cat_walk.png';
+import catFrontImg from '../assets/cat_front.png';
+import catBackImg from '../assets/cat_back.png';
+
 const LockedState = ({ onMobileUnlock }) => {
   const [tapCount, setTapCount] = useState(0);
   const [totalTaps, setTotalTaps] = useState(() => {
@@ -254,7 +258,7 @@ const LockedState = ({ onMobileUnlock }) => {
             {isPlaying && <div className="game-timer">{gameTime}s</div>}
 
             <img
-              src={isPlaying ? "/src/assets/cat_walk.png" : (totalTaps >= 10 ? "/src/assets/cat_front.png" : "/src/assets/cat_back.png")}
+              src={isPlaying ? catWalkImg : (totalTaps >= 10 ? catFrontImg : catBackImg)}
               alt="Error Icon"
               className={`cat-image ${isJumping ? "jumping" : ""} ${isPlaying ? "running" : ""}`}
               onClick={handleTap}
