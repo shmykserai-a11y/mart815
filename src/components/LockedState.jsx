@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from "react-router-dom";
 
 const LockedState = ({ onMobileUnlock }) => {
   const [tapCount, setTapCount] = useState(0);
@@ -23,6 +24,7 @@ const LockedState = ({ onMobileUnlock }) => {
   const obstacleTimerRef = useRef(0);
   const isJumpingRef = useRef(false);
   const resetTimeoutRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -39,12 +41,21 @@ const LockedState = ({ onMobileUnlock }) => {
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      cancelAnimationFrame(gameLoopRef.current);
-      clearInterval(timerRef.current);
     };
-  }, [isPlaying, isJumping, gameStatus]);
+  }, [isPlaying, gameStatus]);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   const startGame = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
+
     setIsPlaying(true);
     setGameStatus("");
     setGameTime(60);
@@ -57,9 +68,9 @@ const LockedState = ({ onMobileUnlock }) => {
     // Таймер
     timerRef.current = setInterval(() => {
       setGameTime((prev) => {
-        if (prev <= 1) {
+        if (prev <= -14) {
           winGame();
-          return 0;
+          return -15;
         }
         return prev - 1;
       });
@@ -138,16 +149,15 @@ const LockedState = ({ onMobileUnlock }) => {
   const winGame = () => {
     setIsPlaying(false);
     setGameStatus("won");
-    setCurrentMessage("Все, я устал.");
     clearInterval(timerRef.current);
-    cancelAnimationFrame(gameLoopRef.current);
-    gameLoopRef.current = null;
+    if (gameLoopRef.current) {
+      cancelAnimationFrame(gameLoopRef.current);
+      gameLoopRef.current = null;
+    }
 
-    setTimeout(() => {
-      setGameStatus("");
-      setCurrentMessage("");
-      setObstacles([]);
-    }, 5000);
+    setCurrentMessage("");
+    setShowFinalDialog(true);
+    setObstacles([]);
   };
 
 
@@ -158,7 +168,14 @@ const LockedState = ({ onMobileUnlock }) => {
 
 
 
-  // Обработка 5 тапов для мобильных устройств
+  // Прыжок по тапу на экран (для мобильных)
+  const handleScreenTap = () => {
+    if (isPlaying && !isJumpingRef.current) {
+      jump();
+    }
+  };
+
+  // Обработка тапов по самому коту
   const handleTap = (e) => {
     e.stopPropagation();
 
@@ -180,14 +197,33 @@ const LockedState = ({ onMobileUnlock }) => {
     localStorage.setItem("catTotalTaps", newTotal.toString());
 
     // Логика сообщений
-    if (newTotal === 5) setCurrentMessage("Хватит тискать котика, лучше чини баг.");
-    else if (newTotal === 10) setCurrentMessage("Ты вообще собираешься заниматься делом?");
-    else if (newTotal === 15) setCurrentMessage("Что бы починить баг нужно его сначала найти.");
-    else if (newTotal === 20) setCurrentMessage("Я думал ты профессиональный фронтенд-разработчик, а не просто любитель....котиков.");
-    else if (newTotal === 25) setCurrentMessage("Ну все, мне надоело! Больше ничего тебе не скажу.");
-    else if (newTotal >= 45) {
+    if (newTotal === 10) setCurrentMessage("Хватит тискать котика, лучше чини баг.");
+    else if (newTotal === 20) setCurrentMessage("Ты вообще собираешься заниматься делом?");
+    else if (newTotal === 30) setCurrentMessage("Что бы починить баг нужно его сначала найти.");
+    else if (newTotal === 40) setCurrentMessage("Я думал ты профессиональный фронтенд-разработчик, а не просто любитель....котиков.");
+    else if (newTotal === 50) {
+      setCurrentMessage("Ну все, мне надоело! Я ухожу.");
+      setTimeout(() => {
+        if (!isPlaying) startGame();
+      }, 3000);
+    }
+    else if (newTotal > 50 && newTotal < 75) {
+      if (!isPlaying) {
+        startGame();
+      } else if (!isJumpingRef.current) {
+        jump();
+      }
+    }
+    else if (newTotal >= 75) {
       setCurrentMessage("");
       setShowFinalDialog(true);
+      if (isPlaying) {
+        setIsPlaying(false);
+        clearInterval(timerRef.current);
+        if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
+        gameLoopRef.current = null;
+        setObstacles([]);
+      }
     }
 
     resetTimeoutRef.current = setTimeout(() => {
@@ -196,7 +232,7 @@ const LockedState = ({ onMobileUnlock }) => {
   };
 
   return (
-    <div className="locked-state">
+    <div className="locked-state" onClick={handleScreenTap}>
 
       {currentMessage && (
         <div className="cat-toast">
@@ -207,8 +243,8 @@ const LockedState = ({ onMobileUnlock }) => {
       {showFinalDialog && (
         <div className="final-unlock-overlay">
           <div className="final-dialog">
-            <p>Ладно. Хорошо! Так и быть. Починю баг сам. Но в терминале тебе придется разобраться самостоятельно.</p>
-            <button onClick={() => onMobileUnlock()}>Открыть терминал</button>
+            <p>Все, я устал! Так и быть. Котики не чинят баги, но я сделаю это, потому что мне надоело. Иди разбирайся в терминале.</p>
+            <button onClick={() => { onMobileUnlock(); navigate("/terminal"); }}>Открыть терминал</button>
           </div>
         </div>
       )}
@@ -218,7 +254,7 @@ const LockedState = ({ onMobileUnlock }) => {
             {isPlaying && <div className="game-timer">{gameTime}s</div>}
 
             <img
-              src={isPlaying ? "/src/assets/cat_walk.png" : "/src/assets/cat_front.png"}
+              src={isPlaying ? "/src/assets/cat_walk.png" : (totalTaps >= 10 ? "/src/assets/cat_front.png" : "/src/assets/cat_back.png")}
               alt="Error Icon"
               className={`cat-image ${isJumping ? "jumping" : ""} ${isPlaying ? "running" : ""}`}
               onClick={handleTap}
@@ -227,7 +263,7 @@ const LockedState = ({ onMobileUnlock }) => {
             />
 
             {isPlaying && obstacles.map(o => (
-              <div key={o.id} className="obstacle" style={{ left: `${o.x}%` }}>🌵</div>
+              <div key={o.id} className="obstacle" style={{ left: `${o.x}% ` }}>🌵</div>
             ))}
           </div>
         </div>
@@ -250,7 +286,7 @@ const LockedState = ({ onMobileUnlock }) => {
       </div>
 
       <div className="hidden-cursor">
-        <span className="hidden-hint">gjnbcrfq rjnbrf</span>
+        <span className="hidden-hint">cktleq pf cthsv rjnbrjv</span>
         <span className="cursor-blink">_</span>
       </div>
 
@@ -259,263 +295,263 @@ const LockedState = ({ onMobileUnlock }) => {
       </div>
 
       <style>{`
-        
-        .cat-toast {
-          position: fixed;
-          top: 20px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: rgba(32, 33, 36, 0.95);
-          color: #e8eaed;
-          padding: 12px 24px;
-          border-radius: 8px;
-          border: 1px solid #3c4043;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-          z-index: 1000;
-          font-size: 14px;
-          animation: slideDown 0.3s ease-out;
-          pointer-events: none;
-        }
 
-        @keyframes slideDown {
+  .cat-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(32, 33, 36, 0.95);
+  color: #e8eaed;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 1px solid #3c4043;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  font-size: 14px;
+  animation: slideDown 0.3s ease-out;
+  pointer-events: none;
+}
+
+@keyframes slideDown {
           from { transform: translate(-50%, -100%); opacity: 0; }
           to { transform: translate(-50%, 0); opacity: 1; }
-        }
+}
 
         .final-unlock-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.85);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 2000;
-          padding: 20px;
-        }
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
 
         .final-dialog {
-          background: #202124;
-          padding: 30px;
-          border-radius: 12px;
-          border: 1px solid #8ab4f8;
-          max-width: 400px;
-          text-align: center;
-          box-shadow: 0 0 20px rgba(138, 180, 248, 0.2);
-        }
+  background: #202124;
+  padding: 30px;
+  border-radius: 12px;
+  border: 1px solid #8ab4f8;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(138, 180, 248, 0.2);
+}
 
         .final-dialog p {
-          color: #e8eaed;
-          margin-bottom: 24px;
-          line-height: 1.6;
-        }
+  color: #e8eaed;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
 
         .final-dialog button {
-          background: #8ab4f8;
-          color: #202124;
-          border: none;
-          padding: 12px 24px;
-          border-radius: 6px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: transform 0.2s, background-color 0.2s;
-        }
+  background: #8ab4f8;
+  color: #202124;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
 
         .final-dialog button:hover {
-          background: #aecbfa;
-          transform: scale(1.05);
-        }
+  background: #aecbfa;
+  transform: scale(1.05);
+}
         .chrome-error-content {
-          max-width: 600px;
-          width: 100%;
-        }
+  max-width: 600px;
+  width: 100%;
+}
         
         .error-icon.shake img {
-          animation: shake-animation 0.3s ease-in-out;
-        }
+  animation: shake-animation 0.3s ease-in-out;
+}
 
-        @keyframes shake-animation {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-2px); }
-          50% { transform: translateX(2px); }
-          75% { transform: translateX(-2px); }
-        }
+@keyframes shake-animation {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  50% { transform: translateX(2px); }
+  75% { transform: translateX(-2px); }
+}
 
         .error-icon img {
-          user-select: none;
-          -webkit-user-drag: none;
-        }
+  user-select: none;
+  -webkit-user-drag: none;
+}
         .error-icon {
-          margin-left: -10px;
-          margin-bottom: 30px;
-        }
+  margin-left: -10px;
+  margin-bottom: 30px;
+}
         .main-title {
-          font-size: 24px;
-          font-weight: 500;
-          margin-bottom: 12px;
-          color: #e8eaed;
-        }
+  font-size: 24px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  color: #e8eaed;
+}
         .subtitle {
-          font-size: 15px;
-          margin-bottom: 30px;
-          color: #bdc1c6;
-        }
+  font-size: 15px;
+  margin-bottom: 30px;
+  color: #bdc1c6;
+}
         .suggestions {
-          font-size: 14px;
-          margin-bottom: 20px;
-          color: #bdc1c6;
-        }
+  font-size: 14px;
+  margin-bottom: 20px;
+  color: #bdc1c6;
+}
         .suggestions ul {
-          margin-top: 10px;
-          margin-left: 20px;
-        }
+  margin-top: 10px;
+  margin-left: 20px;
+}
         .suggestions li {
-          margin-bottom: 8px;
-        }
+  margin-bottom: 8px;
+}
         .suggestions a {
-          color: #8ab4f8;
-          text-decoration: none;
-        }
+  color: #8ab4f8;
+  text-decoration: none;
+}
         .error-code {
-          font-size: 12px;
-          color: #9aa0a6;
-          margin-bottom: 40px;
-          text-transform: uppercase;
-        }
+  font-size: 12px;
+  color: #9aa0a6;
+  margin-bottom: 40px;
+  text-transform: uppercase;
+}
         .refresh-btn {
-          background-color: #8ab4f8;
-          color: #202124;
-          border: none;
-          padding: 10px 24px;
-          border-radius: 4px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background-color 0.2s;
-        }
+  background-color: #8ab4f8;
+  color: #202124;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
         .refresh-btn:hover {
-          background-color: #aecbfa;
-        }
-        
+  background-color: #aecbfa;
+}
+
         /* Скрытые элементы */
         
 
         .hidden-cursor {
-          position: fixed;
-          bottom: 10px;
-          left: 10px;
-          color: #ffffff;
-          font-family: monospace;
-          display: flex;
-          align-items: flex-end;
-        }
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  color: #ffffff;
+  font-family: monospace;
+  display: flex;
+  align-items: flex-end;
+}
         
         .hidden-hint {
-          opacity: 0.01;
-          font-size: 15px;
-          margin-right: 5px;
-          user-select: all;
-          transition: opacity 0.1s;
-        }
+  opacity: 0.01;
+  font-size: 15px;
+  margin-right: 5px;
+  user-select: all;
+  transition: opacity 0.1s;
+}
 
         .hidden-hint::selection {
-          background: #8ab4f8;
-          color: #000000;
-        }
+  background: #8ab4f8;
+  color: #000000;
+}
 
         .cursor-blink {
-          font-size: 20px;
-          opacity: 0.3;
-          animation: blink 1s infinite;
-        }
+  font-size: 20px;
+  opacity: 0.3;
+  animation: blink 1s infinite;
+}
         
         .hidden-text-selection {
-          position: absolute;
-          bottom: -100px;
-          color: transparent;
-          user-select: all;
-        }
+  position: absolute;
+  bottom: -100px;
+  color: transparent;
+  user-select: all;
+}
         .hidden-text-selection::selection {
-          background: #3c4043;
-          color: #e8eaed;
-        }
+  background: #3c4043;
+  color: #e8eaed;
+}
 
-        @keyframes blink {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0; }
-        }
+@keyframes blink {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0; }
+}
 
-        @media (max-width: 600px) {
+@media(max-width: 600px) {
           .locked-state {
-            padding: 40px 24px;
-            justify-content: flex-start;
-          }
-        }
+    padding: 40px 24px;
+    justify-content: flex-start;
+  }
+}
 
         /* Game Styles */
         .game-container {
-          position: relative;
-          width: 300px;
-          height: 150px;
-          border-bottom: 2px solid #5f6368;
-          overflow: hidden;
-          margin-bottom: 20px;
-          display: flex;
-          align-items: flex-end;
-          transition: width 0.3s;
-        }
+  position: relative;
+  width: 300px;
+  height: 150px;
+  border-bottom: 2px solid #5f6368;
+  overflow: hidden;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-end;
+  transition: width 0.3s;
+}
 
         .game-container.playing {
-          width: 500px;
-          background: rgba(255, 255, 255, 0.02);
-        }
+  width: 500px;
+  background: rgba(255, 255, 255, 0.02);
+}
 
         .cat-image {
-          width: 64px;
-          height: 64px;
-          position: absolute;
-          left: 20px;
-          bottom: 0;
-          transition: bottom 0.2s cubic-bezier(0.1, 0.7, 0.1, 1);
-          z-index: 10;
-        }
+  width: 64px;
+  height: 64px;
+  position: absolute;
+  left: 20px;
+  bottom: 0;
+  transition: bottom 0.2s cubic-bezier(0.1, 0.7, 0.1, 1);
+  z-index: 10;
+}
 
         .cat-image.jumping {
-          bottom: 80px;
-        }
+  bottom: 80px;
+}
 
         .cat-image.running {
-          animation: run-wiggle 0.2s infinite alternate;
-        }
+  animation: run-wiggle 0.2s infinite alternate;
+}
 
-        @keyframes run-wiggle {
+@keyframes run-wiggle {
           from { transform: rotate(-3deg); }
           to { transform: rotate(3deg); }
-        }
+}
 
         .obstacle {
-          position: absolute;
-          bottom: 5px;
-          font-size: 24px;
-          line-height: 1;
-          width: 30px;
-          height: 30px;
-          z-index: 5;
-        }
+  position: absolute;
+  bottom: 5px;
+  font-size: 24px;
+  line-height: 1;
+  width: 30px;
+  height: 30px;
+  z-index: 5;
+}
 
         .game-timer {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          font-family: 'Courier New', monospace;
-          font-size: 18px;
-          color: #8ab4f8;
-          font-weight: bold;
-          text-shadow: 0 0 5px rgba(138, 180, 248, 0.5);
-        }
-      `}</style>
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 18px;
+  color: #8ab4f8;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(138, 180, 248, 0.5);
+}
+`}</style>
     </div>
   );
 };

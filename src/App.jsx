@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
 import LockedState from './components/LockedState';
 import Terminal from './components/Terminal';
@@ -19,15 +20,11 @@ function App() {
         trustValue = val;
         if (val === true || val === "true") {
           setIsUnlocked(true);
-    localStorage.setItem("isUnlocked", "true");
+          localStorage.setItem("isUnlocked", "true");
         }
       },
       configurable: true
     });
-
-    return () => {
-      // Очистка не требуется, так как window глобален
-    };
   }, []);
 
   const handleMobileUnlock = () => {
@@ -36,13 +33,23 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      {!isUnlocked ? (
-        <LockedState onMobileUnlock={handleMobileUnlock} />
-      ) : (
-        <Terminal />
-      )}
-    </div>
+    <Router>
+      <div className="app-container">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              !isUnlocked ? (
+                <LockedState onMobileUnlock={handleMobileUnlock} />
+              ) : (
+                <Navigate to="/terminal" replace />
+              )
+            }
+          />
+          <Route path="/terminal" element={<Terminal />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
