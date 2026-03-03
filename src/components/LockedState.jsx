@@ -243,7 +243,7 @@ const LockedState = ({ onMobileUnlock }) => {
       {showFinalDialog && (
         <div className="final-unlock-overlay">
           <div className="final-dialog">
-            <p>Все, я устал! Так и быть. Котики не чинят баги, но я сделаю это, потому что мне надоело. Иди разбирайся в терминале.</p>
+            <p>Все, я устал! Так и быть. Котики не чинят баги, но я сделаю это, потому что мне надоело. Но сервер запустишь ты.</p>
             <button onClick={() => { onMobileUnlock(); navigate("/terminal"); }}>Открыть терминал</button>
           </div>
         </div>
