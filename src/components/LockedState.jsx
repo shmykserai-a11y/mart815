@@ -31,6 +31,30 @@ const LockedState = ({ onMobileUnlock }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Подсказка в консоли только для первой страницы
+    console.clear();
+    console.log('%cUncaught Error: System.Locked() - User verification failed.', 'color: red; font-size: 14px; font-weight: bold;');
+    console.log('%c> Чтобы разблокировать, введи: window.userTrust = true', 'color: gray; font-size: 12px;');
+
+    let trustValue = false;
+    Object.defineProperty(window, 'userTrust', {
+      get: () => trustValue,
+      set: (val) => {
+        trustValue = val;
+        if (val === true || val === "true") {
+          onMobileUnlock();
+        }
+      },
+      configurable: true
+    });
+
+    return () => {
+      console.clear();
+      delete window.userTrust;
+    };
+  }, [onMobileUnlock]);
+
+  useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.code === "Space") {
         e.preventDefault();

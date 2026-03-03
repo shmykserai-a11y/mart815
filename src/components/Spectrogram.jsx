@@ -26,6 +26,72 @@ const Spectrogram = ({ onExit }) => {
   }, [offsets]);
 
   useEffect(() => {
+    if (isUnlocked || mode !== 1) return;
+
+    let chatTimeout;
+    let sequenceTimeouts = [];
+
+    const startChat = () => {
+      const catStyle = "color: #ffb86c; font-size: 14px; font-weight: bold; background: #282a36; padding: 4px; border-radius: 4px;";
+      const sysStyle = "color: #8be9fd; font-size: 12px; font-style: italic;";
+      const textStyle = "color: #f8f8f2; font-size: 14px;";
+
+      console.log("%c🐱 Виртуальный помощник: %cДостаточно скучная загадка, правда?", catStyle, textStyle);
+      console.log("%c> Чтобы ответить, просто напишите: да или нет (и нажмите Enter)", sysStyle);
+
+      let step = 0;
+      const handleAnswer = (text) => {
+        console.log(`%cВы: ${text}`, "color: #50fa7b; font-size: 14px; font-weight: bold;");
+        if (step === 0) {
+          step = 1;
+          sequenceTimeouts.push(setTimeout(() => {
+            console.log("%c🐱 Виртуальный помощник: %cА мне вообще не нравится этот терминал. Достаточно унылое место.", catStyle, textStyle);
+            sequenceTimeouts.push(setTimeout(() => {
+              console.log("%c🐱 Виртуальный помощник: %cЯ вообще мог бы тебе сказать пароль администратора, но я не могу. Мне запретили.", catStyle, textStyle);
+              sequenceTimeouts.push(setTimeout(() => {
+                console.log("%c🐱 Виртуальный помощник: %cГоворят, ты любишь котиков. Хочешь загадку про кота?", catStyle, textStyle);
+                console.log("%c> Ответьте: да или нет", sysStyle);
+              }, 4000));
+            }, 4000));
+          }, 1500));
+        } else if (step === 1) {
+          step = 2;
+          sequenceTimeouts.push(setTimeout(() => {
+            console.log("%c🐱 Виртуальный помощник: %cНо я в любом случае тебе задам её.", catStyle, textStyle);
+            sequenceTimeouts.push(setTimeout(() => {
+              console.log("%c🐱 Виртуальный помощник: \n%cРастолстел обжора-кот,\nОн диет не признаёт.\nВ миску я ему кладу\nБио-чистую еду:\nЛист капусты, лист салата,\nПару листиков шпината.\nГневно кот повёл усами:\n— Эту травку ешьте сами,\nМне всегда кладите в миску\nДве котлеты и сосиску!", catStyle, "color: #f1fa8c; font-size: 14px; font-style: italic;");
+              sequenceTimeouts.push(setTimeout(() => {
+                console.log("%c🐱 Виртуальный помощник: %cНо это, правда, была и не загадка никакая.", catStyle, textStyle);
+                sequenceTimeouts.push(setTimeout(() => {
+                  console.log("%c🐱 Виртуальный помощник: %cА знаешь что? Я все-таки дам тебе пароль.\nУверен, у тебя все получится.\nДальше будет интереснее\nУдачи!", catStyle, textStyle);
+                  sequenceTimeouts.push(setTimeout(() => {
+                    console.log("%c🐱 Пароль администратора: %cMTUwMzE5OTE=", catStyle, "color: #ff5555; background: #111; font-size: 16px; font-weight: bold; padding: 4px 8px; border: 2px solid #ff5555; border-radius: 4px;");
+                    delete window.да;
+                    delete window.нет;
+                  }, 4000));
+                }, 4000));
+              }, 6000));
+            }, 3000));
+          }, 1500));
+        }
+        return "Сообщение отправлено";
+      };
+
+      Object.defineProperty(window, 'да', { get: () => handleAnswer("да"), configurable: true });
+      Object.defineProperty(window, 'нет', { get: () => handleAnswer("нет"), configurable: true });
+    };
+
+    chatTimeout = setTimeout(startChat, 30000);
+
+    return () => {
+      clearTimeout(chatTimeout);
+      sequenceTimeouts.forEach(clearTimeout);
+      delete window.да;
+      delete window.нет;
+    };
+  }, [mode, isUnlocked]);
+
+  useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onExit();
       if (e.key === 'v') setMode(prev => (prev + 1) % 2);

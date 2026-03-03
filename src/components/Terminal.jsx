@@ -259,7 +259,6 @@ const Terminal = () => {
                         onKeyDown={handleCommand}
                         autoFocus
                     />
-                    <span className="cursor">_</span>
                 </div>
             )}
             <div ref={bottomRef} />
@@ -293,19 +292,7 @@ const Terminal = () => {
           font-family: inherit;
           font-size: inherit;
           outline: none;
-          width: 0;
           flex-grow: 1;
-        }
-        .cursor {
-          background: #00ff00;
-          color: #00ff00;
-          animation: blink 1s infinite;
-          width: 10px;
-          height: 1.2em;
-        }
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
         }
       `}</style>
         </div>
