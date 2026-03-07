@@ -1,34 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
 import LockedState from './components/LockedState';
 import Terminal from './components/Terminal';
+import HogwartsPage from './components/HogwartsPage';
 
 function App() {
   const [isUnlocked, setIsUnlocked] = useState(() => localStorage.getItem("isUnlocked") === "true");
 
-  useEffect(() => {
-    // Подсказка в консоли (выводим при каждом монтировании для надежности)
-    console.log('%cUncaught Error: System.Locked() - User verification failed.', 'color: red; font-size: 14px; font-weight: bold;');
-    console.log('%c> Чтобы разблокировать, введи: window.userTrust = true', 'color: gray; font-size: 12px;');
 
-    // Используем сеттер для мгновенной реакции на ввод в консоли
-    let trustValue = false;
-    Object.defineProperty(window, 'userTrust', {
-      get: () => trustValue,
-      set: (val) => {
-        trustValue = val;
-        if (val === true || val === "true") {
-          setIsUnlocked(true);
-    localStorage.setItem("isUnlocked", "true");
-        }
-      },
-      configurable: true
-    });
-
-    return () => {
-      // Очистка не требуется, так как window глобален
-    };
-  }, []);
 
   const handleMobileUnlock = () => {
     setIsUnlocked(true);
@@ -36,13 +16,24 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      {!isUnlocked ? (
-        <LockedState onMobileUnlock={handleMobileUnlock} />
-      ) : (
-        <Terminal />
-      )}
-    </div>
+    <Router>
+      <div className="app-container">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              !isUnlocked ? (
+                <LockedState onMobileUnlock={handleMobileUnlock} />
+              ) : (
+                <Navigate to="/terminal" replace />
+              )
+            }
+          />
+          <Route path="/terminal" element={<Terminal />} />
+          <Route path="/hogwarts" element={<HogwartsPage />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

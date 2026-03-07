@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Spectrogram from './Spectrogram';
 
 const Terminal = () => {
@@ -13,8 +14,12 @@ const Terminal = () => {
 
     const bottomRef = useRef(null);
     const inputRef = useRef(null);
+    const navigate = useNavigate();
 
-    const WELCOME_MSG = [
+    const [isMobile, setIsMobile] = useState(false);
+    const [isUpdated, setIsUpdated] = useState(() => localStorage.getItem("systemUpdated") === "true");
+
+    const ASCII_ART = [
         "==================================================",
         "              SYSTEM TERMINAL v2.4.1              ",
         "==================================================",
@@ -34,30 +39,53 @@ const Terminal = () => {
         "            `-._                   _.-'",
         "                `\"'--...___...--'\"`",
         "",
-        "==================================================",
+        "=================================================="
+    ];
+
+    const DESKTOP_MSG = [
         "> Добро пожаловать, гость.",
         "> Система разблокирована. Уровень доступа: Гость (Read-Only)",
-        "> Доступные команды: help, play, scan, admin",
+        "> Доступные команды: help, start, update, crypto, admin",
         "> ",
-        "> Введите 'help' для списка команд или 'play' для прослушивания сообщения."
+        "> Введите 'help' для списка команд или 'update' для запуска обновления системы."
+    ];
+
+    const MOBILE_MSG = [
+        "Система не инициализирована. Ваше устройство не подходит для дальнейших действий."
     ];
 
     useEffect(() => {
-        if (isTypewriting && history.length < WELCOME_MSG.length) {
-            const timeout = setTimeout(() => {
-                const nextLine = WELCOME_MSG[history.length];
-                setHistory(prev => [...prev, { text: nextLine, type: 'system' }]);
-            }, 150);
-            return () => clearTimeout(timeout);
-        } else if (isTypewriting && history.length >= WELCOME_MSG.length) {
-            setIsTypewriting(false);
-        }
-    }, [history, isTypewriting]);
+        // Проверка на мобильное устройство
+        const checkMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        setIsMobile(checkMobile);
 
-    useEffect(() => {
         setHistory([]); // Обнуляем историю при монтировании
         setIsTypewriting(true);
     }, []);
+
+    useEffect(() => {
+        const activeMsg = isMobile ? [...ASCII_ART, ...MOBILE_MSG] : [...ASCII_ART, ...DESKTOP_MSG];
+
+        if (localStorage.getItem('assistantReady') === 'true') {
+            window.assistantReady = true;
+            if (!isMobile) {
+                activeMsg.push("> ");
+                activeMsg.push("> 🐱 Виртуальный помощник ожидает ответ.");
+                activeMsg.push("> Чтобы отправить кодовую фразу, напишите: send('ваша_фраза')");
+            }
+        }
+
+        if (isTypewriting && history.length < activeMsg.length) {
+            const timeout = setTimeout(() => {
+                const nextLine = activeMsg[history.length];
+                const type = (isMobile && history.length >= ASCII_ART.length) ? 'error' : 'system';
+                setHistory(prev => [...prev, { text: nextLine, type }]);
+            }, 100); // 100ms для комфортной скорости загрузки на мобилках
+            return () => clearTimeout(timeout);
+        } else if (isTypewriting && history.length >= activeMsg.length) {
+            setIsTypewriting(false);
+        }
+    }, [history, isTypewriting, isMobile]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -72,26 +100,26 @@ const Terminal = () => {
     const handleCommand = (e) => {
         if (e.key === 'Enter') {
             const cmd = input.trim().toLowerCase();
-            setHistory(prev => [...prev, { text: `guest@birthday:~$ ${isPasswordMode ? '********' : input}`, type: 'user' }]);
+            const promptStr = isAdmin ? 'admin@birthday:~# ' : 'guest@birthday:~$ ';
+            setHistory(prev => [...prev, { text: `${promptStr}${isPasswordMode ? '********' : input}`, type: 'user' }]);
             setInput('');
 
             if (isPasswordMode) {
-                if (cmd === '22031995') {
+                if (cmd === '15031991') {
                     setIsAdmin(true);
                     setIsPasswordMode(false);
                     setHistory(prev => [...prev,
                     { text: "> ДОСТУП РАЗРЕШЕН.", type: 'success' },
                     { text: "> Здравствуй, Администратор.", type: 'system' },
-                    { text: "> Загружается протокол \"Подарок\"...", type: 'system' },
-                    { text: "> [██████████████████████████░░░░] 80%", type: 'system' },
-                    { text: "> ", type: 'system' },
-                    { text: "> Ошибка! Файл подарка был перемещен.", type: 'error' },
-                    { text: "> Последняя известная геолокация:", type: 'system' },
-                    { text: "> Широта: 55.751244", type: 'system' },
-                    { text: "> Долгота: 37.618423", type: 'system' },
-                    { text: "> (Координаты места, где спрятан подарок)", type: 'system' },
-                    { text: "> ", type: 'system' },
-                    { text: "> Для подтверждения получения введи 'accept'", type: 'system' }
+                        //{ text: "> Загружается протокол \"Подарок\"...", type: 'system' },
+                        //{ text: "> [██████████████████████████░░░░] 80%", type: 'system' },
+                        //{ text: "> ", type: 'system' },
+                        //{ text: "> Ошибка! Файл подарка был перемещен.", type: 'error' },
+                        //{ text: "> Последняя известная геолокация:", type: 'system' },
+                        //{ text: "> Широта: 55.751244", type: 'system' },
+                        //{ text: "> Долгота: 37.618423", type: 'system' },
+                        //{ text: "> ", type: 'system' },
+                        //{ text: "> Для подтверждения получения введи 'accept'", type: 'system' }
                     ]);
                 } else {
                     setHistory(prev => [...prev, { text: "> Неверный пароль. Попытка залогирована.", type: 'error' }]);
@@ -105,29 +133,51 @@ const Terminal = () => {
                     setHistory(prev => [...prev,
                     { text: "> Доступные команды:", type: 'system' },
                     { text: ">   help            - показать эту справку", type: 'system' },
-                    { text: ">   play            - воспроизвести аудиосообщение", type: 'system' },
-                    { text: ">   scan            - открыть анализатор сигнала", type: 'system' },
+                    { text: ">   update          - запустить обновление системы", type: 'system' },
+                    { text: ">   crypto          - ручная настройка ключей доступа", type: 'system' },
                     { text: ">   admin           - вход в режим администратора", type: 'system' },
-                    { text: "> ", type: 'system' },
-                    { text: "> Для перехода к анализу спектра используй 'scan'.", type: 'system' }
+                    { text: ">   start           - запуск главного сервера", type: 'system' },
+                    { text: "> ", type: 'system' }
                     ]);
                     break;
-                case 'play':
-                    startAudioSimulation();
+                case 'update':
+                    if (isUpdated) {
+                        setHistory(prev => [...prev, { text: "> Ошибка: Система уже обновлена до последней версии.", type: 'system' }]);
+                    } else {
+                        startUpdateSimulation();
+                    }
                     break;
-                case 'scan':
-                    setIsScanning(true);
+                case 'crypto':
+                    if (!isUpdated) {
+                        setHistory(prev => [...prev, { text: "> ПО устарело. Запустите обновление.", type: 'error' }]);
+                    } else {
+                        setIsScanning(true);
+                    }
                     break;
                 case 'admin':
                     setIsPasswordMode(true);
-                    setHistory(prev => [...prev, { text: "> Вход в режим администратора. \n> Введите пароль: ", type: 'system' }]);
+                    if (isUpdated) {
+                        setHistory(prev => [...prev, { text: "> Вход в режим администратора. \n> Система обновлена. Воспользуйтесь командой crypto, чтобы узнать новый пароль.\n> Введите пароль: ", type: 'system' }]);
+                    } else {
+                        setHistory(prev => [...prev, { text: "> Вход в режим администратора. \n> Введите пароль: ", type: 'system' }]);
+                    }
+                    break;
+                case 'start':
+                    setHistory(prev => [...prev, { text: "> Используйте sudo", type: 'error' }]);
+                    break;
+                case 'sudo start':
+                    if (isAdmin) {
+                        startFakeServerLoad();
+                    } else {
+                        setHistory(prev => [...prev, { text: "> Ошибка: Требуются права администратора.", type: 'error' }]);
+                    }
                     break;
                 case 'accept':
                     if (isAdmin) {
                         setHistory(prev => [...prev,
                         { text: "> Статус: Подтверждено.", type: 'success' },
                         { text: "> Подарок активирован. Система завершает работу.", type: 'system' },
-                        { text: "> С днём рождения, Кристина! (Имя заменено на стандартное)", type: 'success' },
+                        { text: "> С днём рождения, Таня!", type: 'success' },
                         { text: "> ", type: 'system' },
                         { text: "> Сеанс будет закрыт через 10 секунд...", type: 'system' }
                         ]);
@@ -143,16 +193,53 @@ const Terminal = () => {
                     break;
                 default:
                     if (cmd !== '') {
+                        if (window.assistantReady) {
+                            let textInside = cmd.trim();
+                            const isSendCmd = textInside.startsWith("send(") && textInside.endsWith(")");
+                            if (isSendCmd) {
+                                textInside = textInside.substring(5, textInside.length - 1).replace(/['"]/g, '').trim();
+                            }
+                            if (textInside.toLowerCase() === "irure voluptate laborum officia dolor") {
+                                setHistory(prev => [...prev,
+                                { text: "> 🐱 Виртуальный помощник: Отлично! парольная фраза верна.", type: 'system' },
+                                { text: "> 🐱 Пароль администратора: 15031991", type: 'success' }
+                                ]);
+                                delete window.assistantReady;
+                                delete window.send;
+                                localStorage.removeItem('assistantReady');
+                                return;
+                            } else if (isSendCmd) {
+                                setHistory(prev => [...prev, { text: "> 🐱 Виртуальный помощник: Неверно. Ищи лучше.", type: 'error' }]);
+                                return;
+                            }
+                        }
                         setHistory(prev => [...prev, { text: `> Команда '${cmd}' не найдена. Введите 'help' для списка команд.`, type: 'error' }]);
                     }
             }
         }
     };
 
-    const startAudioSimulation = () => {
+    const startFakeServerLoad = () => {
+        setHistory(prev => [...prev, { text: "> Инициализация сервисов запуска...", type: 'system' }]);
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 5;
+            setHistory(prev => [...prev, { text: `> Загрузка модулей... [${'█'.repeat(progress / 5)}${'░'.repeat(20 - Math.floor(progress / 5))}] ${progress}%`, type: 'system' }]);
+
+            if (progress >= 100) {
+                clearInterval(interval);
+                setHistory(prev => [...prev, { text: "> Идет перенаправление...", type: 'success' }]);
+                setTimeout(() => {
+                    navigate('/hogwarts');
+                }, 2000);
+            }
+        }, 1000); // 20 steps of 1s each = 20s
+    };
+
+    const startUpdateSimulation = () => {
         setAudioPlaying(true);
         let progress = 0;
-        setHistory(prev => [...prev, { text: "> Загрузка аудиосообщения...", id: 'audio-line', type: 'system' }]);
+        setHistory(prev => [...prev, { text: "> Загрузка обновления системы...", id: 'audio-line', type: 'system' }]);
 
         const interval = setInterval(() => {
             progress += 5;
@@ -160,9 +247,12 @@ const Terminal = () => {
             if (progress >= 100) {
                 clearInterval(interval);
                 setAudioPlaying(false);
+                setIsUpdated(true);
+                localStorage.setItem("systemUpdated", "true");
                 setHistory(prev => [...prev,
-                { text: "> Сообщение доставлено. Рекомендуется провести спектральный анализ.", type: 'system' },
-                { text: "> Используй 'scan' для открытия анализатора.", type: 'system' }
+                { text: "> ВНИМАНИЕ: В процессе установки возникла системная ошибка.", type: 'error' },
+                { text: "> Файл ключа администратора был поврежден или зашифрован.", type: 'error' },
+                { text: "> Требуется ручная настройка ключей. Введите команду 'crypto'.", type: 'system' }
                 ]);
             }
         }, 200);
@@ -173,7 +263,7 @@ const Terminal = () => {
     }
 
     return (
-        <div className="terminal-state">
+        <div className="terminal-state" onClick={() => inputRef.current?.focus()}>
             <div className="terminal-output">
                 {history.map((line, i) => (
                     <div key={i} className={`line ${line.type}`}>
@@ -182,14 +272,14 @@ const Terminal = () => {
                 ))}
                 {audioPlaying && (
                     <div className="line system">
-                        {`> Воспроизведение: [${'█'.repeat(Math.floor(audioProgress / 5))}${'░'.repeat(20 - Math.floor(audioProgress / 5))}] ${audioProgress}%`}
+                        {`> Выполнение установки: [${'█'.repeat(Math.floor(audioProgress / 5))}${'░'.repeat(20 - Math.floor(audioProgress / 5))}] ${audioProgress}%`}
                     </div>
                 )}
             </div>
 
-            {!isTypewriting && (
+            {!isTypewriting && !isMobile && (
                 <div className="input-line">
-                    <span className="prompt">guest@birthday:~$ </span>
+                    <span className="prompt">{isAdmin ? 'admin@birthday:~# ' : 'guest@birthday:~$ '}</span>
                     <input
                         ref={inputRef}
                         type={isPasswordMode ? 'password' : 'text'}
@@ -198,7 +288,6 @@ const Terminal = () => {
                         onKeyDown={handleCommand}
                         autoFocus
                     />
-                    <span className="cursor">_</span>
                 </div>
             )}
             <div ref={bottomRef} />
@@ -232,19 +321,7 @@ const Terminal = () => {
           font-family: inherit;
           font-size: inherit;
           outline: none;
-          width: 0;
           flex-grow: 1;
-        }
-        .cursor {
-          background: #00ff00;
-          color: #00ff00;
-          animation: blink 1s infinite;
-          width: 10px;
-          height: 1.2em;
-        }
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
         }
       `}</style>
         </div>
