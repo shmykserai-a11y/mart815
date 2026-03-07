@@ -66,6 +66,15 @@ const Terminal = () => {
     useEffect(() => {
         const activeMsg = isMobile ? [...ASCII_ART, ...MOBILE_MSG] : [...ASCII_ART, ...DESKTOP_MSG];
 
+        if (localStorage.getItem('assistantReady') === 'true') {
+            window.assistantReady = true;
+            if (!isMobile) {
+                activeMsg.push("> ");
+                activeMsg.push("> 🐱 Виртуальный помощник ожидает ответ.");
+                activeMsg.push("> Чтобы отправить кодовую фразу, напишите: send('ваша_фраза')");
+            }
+        }
+
         if (isTypewriting && history.length < activeMsg.length) {
             const timeout = setTimeout(() => {
                 const nextLine = activeMsg[history.length];
@@ -184,6 +193,26 @@ const Terminal = () => {
                     break;
                 default:
                     if (cmd !== '') {
+                        if (window.assistantReady) {
+                            let textInside = cmd.trim();
+                            const isSendCmd = textInside.startsWith("send(") && textInside.endsWith(")");
+                            if (isSendCmd) {
+                                textInside = textInside.substring(5, textInside.length - 1).replace(/['"]/g, '').trim();
+                            }
+                            if (textInside.toLowerCase() === "irure voluptate laborum officia dolor") {
+                                setHistory(prev => [...prev,
+                                { text: "> 🐱 Виртуальный помощник: Отлично! парольная фраза верна.", type: 'system' },
+                                { text: "> 🐱 Пароль администратора: 15031991", type: 'success' }
+                                ]);
+                                delete window.assistantReady;
+                                delete window.send;
+                                localStorage.removeItem('assistantReady');
+                                return;
+                            } else if (isSendCmd) {
+                                setHistory(prev => [...prev, { text: "> 🐱 Виртуальный помощник: Неверно. Ищи лучше.", type: 'error' }]);
+                                return;
+                            }
+                        }
                         setHistory(prev => [...prev, { text: `> Команда '${cmd}' не найдена. Введите 'help' для списка команд.`, type: 'error' }]);
                     }
             }
@@ -201,7 +230,7 @@ const Terminal = () => {
                 clearInterval(interval);
                 setHistory(prev => [...prev, { text: "> Идет перенаправление...", type: 'success' }]);
                 setTimeout(() => {
-                    navigate('/new');
+                    navigate('/hogwarts');
                 }, 2000);
             }
         }, 1000); // 20 steps of 1s each = 20s
@@ -234,7 +263,7 @@ const Terminal = () => {
     }
 
     return (
-        <div className="terminal-state">
+        <div className="terminal-state" onClick={() => inputRef.current?.focus()}>
             <div className="terminal-output">
                 {history.map((line, i) => (
                     <div key={i} className={`line ${line.type}`}>

@@ -26,7 +26,7 @@ const Spectrogram = ({ onExit }) => {
   }, [offsets]);
 
   useEffect(() => {
-    if (isUnlocked || mode !== 1) return;
+    if (isUnlocked || mode !== 1 || localStorage.getItem('assistantReady') === 'true') return;
 
     let chatTimeout;
     let sequenceTimeouts = [];
@@ -37,7 +37,7 @@ const Spectrogram = ({ onExit }) => {
       const textStyle = "color: #f8f8f2; font-size: 14px;";
 
       console.log("%c🐱 Виртуальный помощник: %cДостаточно скучная загадка, правда?", catStyle, textStyle);
-      console.log("%c> Чтобы ответить, просто напишите: да или нет (и нажмите Enter)", sysStyle);
+      console.log("%c> Чтобы ответить, просто напиши: да или нет (и нажмите Enter)", sysStyle);
 
       let step = 0;
       const handleAnswer = (text) => {
@@ -47,7 +47,7 @@ const Spectrogram = ({ onExit }) => {
           sequenceTimeouts.push(setTimeout(() => {
             console.log("%c🐱 Виртуальный помощник: %cА мне вообще не нравится этот терминал. Достаточно унылое место.", catStyle, textStyle);
             sequenceTimeouts.push(setTimeout(() => {
-              console.log("%c🐱 Виртуальный помощник: %cЯ вообще мог бы тебе сказать пароль администратора, но я не могу. Мне запретили.", catStyle, textStyle);
+              console.log("%c🐱 Виртуальный помощник: %cЯ вообще знаю пароль администратора, но я не могу сказать. Мне запретили.", catStyle, textStyle);
               sequenceTimeouts.push(setTimeout(() => {
                 console.log("%c🐱 Виртуальный помощник: %cГоворят, ты любишь котиков. Хочешь загадку про кота?", catStyle, textStyle);
                 console.log("%c> Ответьте: да или нет", sysStyle);
@@ -63,14 +63,30 @@ const Spectrogram = ({ onExit }) => {
               sequenceTimeouts.push(setTimeout(() => {
                 console.log("%c🐱 Виртуальный помощник: %cНо это, правда, была и не загадка никакая.", catStyle, textStyle);
                 sequenceTimeouts.push(setTimeout(() => {
-                  console.log("%c🐱 Виртуальный помощник: %cА знаешь что? Я все-таки дам тебе пароль.\nУверен, у тебя все получится.\nДальше будет интереснее\nУдачи!", catStyle, textStyle);
+                  console.log("%c🐱 Виртуальный помощник: %cА знаешь что, я дам тебе архив с подсказкой.\nРазархивируй его и найди кодовую фразу.\nКак только ты пришлешь мне ее, я дам тебе пароль.", catStyle, textStyle);
                   sequenceTimeouts.push(setTimeout(() => {
-                    console.log("%c🐱 Пароль администратора: %cMTUwMzE5OTE=", catStyle, "color: #ff5555; background: #111; font-size: 16px; font-weight: bold; padding: 4px 8px; border: 2px solid #ff5555; border-radius: 4px;");
+                    console.log("%c🐱 Архив: %caHR0cHM6Ly9kaXNrLnlhbmRleC5rei9pL0lJel92WXotRVZqcFl3", catStyle, "color: #50fa7b; background: #282a36; font-size: 14px; font-weight: bold; padding: 4px 8px; border-radius: 4px; border: 1px solid #50fa7b;");
+                    console.log("%c> Чтобы отправить кодовую фразу, напишите: send('passphrase')", sysStyle);
+
                     delete window.да;
                     delete window.нет;
+
+                    window.assistantReady = true;
+                    localStorage.setItem('assistantReady', 'true');
+
+                    window.send = (phrase) => {
+                      if (phrase && typeof phrase === 'string' && phrase.trim().toLowerCase() === "irure voluptate laborum officia dolor") {
+                        console.log("%c🐱 Виртуальный помощник: %cОтлично! парольная фраза верна.", catStyle, textStyle);
+                        console.log("%c🐱 Пароль администратора: %c15031991", catStyle, "color: #ff5555; background: #111; font-size: 16px; font-weight: bold; padding: 4px 8px; border: 2px solid #ff5555; border-radius: 4px;");
+                        delete window.send;
+                      } else {
+                        console.log("%c🐱 Виртуальный помощник: %cНеверно. Ищи лучше.", catStyle, "color: #ff5555; font-size: 14px;");
+                      }
+                      return "Сообщение отправлено";
+                    };
                   }, 4000));
                 }, 4000));
-              }, 6000));
+              }, 12000));
             }, 3000));
           }, 1500));
         }
@@ -88,6 +104,8 @@ const Spectrogram = ({ onExit }) => {
       sequenceTimeouts.forEach(clearTimeout);
       delete window.да;
       delete window.нет;
+      delete window.assistantReady;
+      delete window.send;
     };
   }, [mode, isUnlocked]);
 

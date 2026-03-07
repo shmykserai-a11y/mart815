@@ -3,7 +3,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './index.css';
 import LockedState from './components/LockedState';
 import Terminal from './components/Terminal';
-import NewPage from './components/NewPage';
+import HogwartsPage from './components/HogwartsPage';
 
 function App() {
   const [isUnlocked, setIsUnlocked] = useState(() => localStorage.getItem("isUnlocked") === "true");
@@ -30,7 +30,7 @@ function App() {
             }
           />
           <Route path="/terminal" element={<Terminal />} />
-          <Route path="/new" element={<NewPage />} />
+          <Route path="/hogwarts" element={<HogwartsPage />} />
         </Routes>
       </div>
     </Router>

@@ -10,6 +10,7 @@ const lorem = new LoremIpsum({
 
 // Теперь при каждом запуске будет один и тот же текст
 console.log(lorem.generateWords(5));
+//5 words lorem ipsum with grain 815
 //adipiscing consectetur lorem ipsum dolor
 //console.log(lorem.generateSentences(1));
 //console.log(lorem.generateParagraphs(2));
