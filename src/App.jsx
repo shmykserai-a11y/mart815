@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
 import LockedState from './components/LockedState';
 import Terminal from './components/Terminal';
-import HogwartsPage from './components/HogwartsPage';
+import HogwartsVideoPage from './components/HogwartsVideoPage';
 
 function App() {
   const [isUnlocked, setIsUnlocked] = useState(() => localStorage.getItem("isUnlocked") === "true");
@@ -30,7 +30,7 @@ function App() {
             }
           />
           <Route path="/terminal" element={<Terminal />} />
-          <Route path="/hogwarts" element={<HogwartsPage />} />
+          <Route path="/hogwarts" element={<HogwartsVideoPage />} />
         </Routes>
       </div>
     </Router>
