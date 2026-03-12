@@ -33,6 +33,28 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Checkout Hogwarts
+        uses: actions/checkout@v4
+        with:
+          repository: shmykserai-a11y/hogwarts
+          path: hogwarts
+
+      - name: Install Hogwarts dependencies
+        working-directory: hogwarts
+        run: npm ci
+
+      - name: Build Hogwarts (static export)
+        working-directory: hogwarts
+        env:
+          NEXT_PUBLIC_BASE_PATH: /hogwarts
+        run: npm run build
+
+      - name: Bundle Hogwarts under /hogwarts
+        run: |
+          rm -rf dist/hogwarts
+          mkdir -p dist/hogwarts
+          cp -R hogwarts/out/. dist/hogwarts/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
