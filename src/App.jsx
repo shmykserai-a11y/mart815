@@ -30,7 +30,9 @@ function App() {
             }
           />
           <Route path="/terminal" element={<Terminal />} />
-          <Route path="/hogwarts" element={<HogwartsVideoPage />} />
+          <Route path="/message" element={<HogwartsVideoPage />} />
+          {/* Back-compat: old route is removed, but we keep a redirect so existing links don't break. */}
+          <Route path="/hogwarts" element={<Navigate to="/message" replace />} />
         </Routes>
       </div>
     </Router>

@@ -18,14 +18,15 @@ export default function HogwartsVideoPage() {
   const videoRef = useRef(null)
   const [ended, setEnded] = useState(false)
   const [autoplayBlocked, setAutoplayBlocked] = useState(false)
-  const [muted, setMuted] = useState(true)
+  const [muted, setMuted] = useState(false)
 
   useEffect(() => {
     const v = videoRef.current
     if (!v) return
 
-    // Autoplay is often blocked with sound; start muted and try to play.
-    v.muted = true
+    // Try autoplay with sound on by default. If the browser blocks it,
+    // the user will need to tap the overlay once (then audio will play).
+    v.muted = false
     const p = v.play()
     if (p && typeof p.catch === 'function') {
       p.catch(() => setAutoplayBlocked(true))
@@ -52,6 +53,7 @@ export default function HogwartsVideoPage() {
     const v = videoRef.current
     if (!v) return
     try {
+      v.muted = muted
       await v.play()
       setAutoplayBlocked(false)
     } catch {
@@ -217,4 +219,3 @@ export default function HogwartsVideoPage() {
     </div>
   )
 }
-

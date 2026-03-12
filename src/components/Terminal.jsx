@@ -230,7 +230,7 @@ const Terminal = () => {
                 clearInterval(interval);
                 setHistory(prev => [...prev, { text: "> Идет перенаправление...", type: 'success' }]);
                 setTimeout(() => {
-                    navigate('/hogwarts');
+                    navigate('/message');
                 }, 2000);
             }
         }, 1000); // 20 steps of 1s each = 20s
