@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
 
 permissions:
   contents: read
@@ -37,6 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: shmykserai-a11y/hogwarts
+          ref: dev
           path: hogwarts
 
       - name: Install Hogwarts dependencies
